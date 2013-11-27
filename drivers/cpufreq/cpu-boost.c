@@ -44,6 +44,8 @@ static struct workqueue_struct *cpu_boost_wq;
 
 static struct work_struct input_boost_work;
 
+static struct work_struct input_boost_work;
+
 static unsigned int boost_ms;
 module_param(boost_ms, uint, 0644);
 
@@ -84,13 +86,14 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val, voi
 		if (!b_min && !ib_min)
 			break;
 
-		min = max(b_min, ib_min);
+	if (!b_min && !ib_min)
+		return NOTIFY_OK;
 
-		pr_debug("CPU%u policy min before boost: %u kHz\n",
-			 cpu, policy->min);
-		pr_debug("CPU%u boost min: %u kHz\n", cpu, min);
+	min = max(b_min, ib_min);
 
-		cpufreq_verify_within_limits(policy, min, UINT_MAX);
+	pr_debug("CPU%u policy min before boost: %u kHz\n",
+		 cpu, policy->min);
+	pr_debug("CPU%u boost min: %u kHz\n", cpu, min);
 
 		pr_debug("CPU%u policy min after boost: %u kHz\n",
 			 cpu, policy->min);
@@ -178,15 +181,9 @@ static int boost_mig_sync_thread(void *data)
 			s->boost_min = src_policy.cur;
 		}
 		/* Force policy re-evaluation to trigger adjust notifier. */
-		get_online_cpus();
-		if (cpu_online(dest_cpu)) {
-			cpufreq_update_policy(dest_cpu);
-			queue_delayed_work_on(dest_cpu, cpu_boost_wq,
-				&s->boost_rem, msecs_to_jiffies(boost_ms));
-		} else {
-			s->boost_min = 0;
-		}
-		put_online_cpus();
+		cpufreq_update_policy(dest_cpu);
+		queue_delayed_work_on(s->cpu, cpu_boost_wq,
+			&s->boost_rem, msecs_to_jiffies(boost_ms));
 	}
 
 	return 0;
@@ -221,7 +218,6 @@ static void do_input_boost(struct work_struct *work)
 	struct cpu_sync *i_sync_info;
 	struct cpufreq_policy policy;
 
-	get_online_cpus();
 	for_each_online_cpu(i) {
 
 		i_sync_info = &per_cpu(sync_info, i);
@@ -238,7 +234,6 @@ static void do_input_boost(struct work_struct *work)
 			&i_sync_info->input_boost_rem,
 			msecs_to_jiffies(input_boost_ms));
 	}
-	put_online_cpus();
 }
 
 static void cpuboost_input_event(struct input_handle *handle,
@@ -336,6 +331,8 @@ static int cpu_boost_init(void)
 	int cpu, ret;
 	struct cpu_sync *s;
 
+	cpufreq_register_notifier(&boost_adjust_nb, CPUFREQ_POLICY_NOTIFIER);
+
 	cpu_boost_wq = alloc_workqueue("cpuboost_wq", WQ_HIGHPRI, 0);
 	if (!cpu_boost_wq)
 		return -EFAULT;
@@ -358,6 +355,7 @@ static int cpu_boost_init(void)
 					&boost_migration_nb);
 	ret = input_register_handler(&cpuboost_input_handler);
 
+	ret = input_register_handler(&cpuboost_input_handler);
 	return 0;
 }
 late_initcall(cpu_boost_init);
