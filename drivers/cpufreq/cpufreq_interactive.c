@@ -58,6 +58,8 @@ struct cpufreq_interactive_cpuinfo {
 	u64 max_freq_idle_start_time;
 	struct rw_semaphore enable_sem;
 	int governor_enabled;
+	int prev_load;
+	bool minfreq_boosted;
 };
 
 static DEFINE_PER_CPU(struct cpufreq_interactive_cpuinfo, cpuinfo);
@@ -185,7 +187,7 @@ static void cpufreq_interactive_timer_resched(unsigned long cpu)
  * The cpu_timer and cpu_slack_timer must be deactivated when calling this
  * function.
  */
-static void cpufreq_interactive_timer_start(int cpu)
+static void cpufreq_interactive_timer_start(int cpu, int time_override)
 {
 	struct cpufreq_interactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
 	u64 expires = round_to_nw_start(pcpu->last_evaluated_jiffy);
@@ -450,6 +452,15 @@ static void cpufreq_interactive_timer(unsigned long data)
 	 * Do not scale below floor_freq unless we have been at or above the
 	 * floor frequency for the minimum sample time since last validated.
 	 */
+	if (sampling_down_factor && pcpu->policy->cur == pcpu->policy->max)
+		mod_min_sample_time = sampling_down_factor;
+	else
+		mod_min_sample_time = min_sample_time;
+
+	if (pcpu->minfreq_boosted) {
+		mod_min_sample_time = 0;
+		pcpu->minfreq_boosted = false;
+	}
 	if (new_freq < pcpu->floor_freq) {
 		if (now - pcpu->floor_validate_time < min_sample_time) {
 			trace_cpufreq_interactive_notyet(
