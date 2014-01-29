@@ -82,14 +82,13 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val, voi
 		if (!b_min && !ib_min)
 			break;
 
-	if (!b_min && !ib_min)
-		return NOTIFY_OK;
+		min = max(b_min, ib_min);
 
-	min = max(b_min, ib_min);
+		pr_debug("CPU%u policy min before boost: %u kHz\n",
+			 cpu, policy->min);
+		pr_debug("CPU%u boost min: %u kHz\n", cpu, min);
 
-	pr_debug("CPU%u policy min before boost: %u kHz\n",
-		 cpu, policy->min);
-	pr_debug("CPU%u boost min: %u kHz\n", cpu, min);
+		cpufreq_verify_within_limits(policy, min, UINT_MAX);
 
 		pr_debug("CPU%u policy min after boost: %u kHz\n",
 			 cpu, policy->min);
