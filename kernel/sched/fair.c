@@ -3311,7 +3311,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
  *
  * Called with both runqueues locked.
  */
-static int move_one_task(struct lb_env *env)
+static int move_one_task(struct lb_env *env, int *total_run_moved)
 {
 	struct task_struct *p, *n;
 
@@ -3347,7 +3347,7 @@ static const unsigned int sched_nr_migrate_break = 32;
  *
  * Called with both runqueues locked.
  */
-static int move_tasks(struct lb_env *env)
+static int move_tasks(struct lb_env *env, int *total_run_moved)
 {
 	struct list_head *tasks = &env->src_rq->cfs_tasks;
 	struct task_struct *p;
@@ -4789,6 +4789,7 @@ static int active_load_balance_cpu_stop(void *data)
 	struct rq *busiest_rq = data;
 	int busiest_cpu = cpu_of(busiest_rq);
 	int target_cpu = busiest_rq->push_cpu;
+	int total_run_moved = 0;
 	struct rq *target_rq = cpu_rq(target_cpu);
 	struct sched_domain *sd;
 
@@ -4835,7 +4836,7 @@ static int active_load_balance_cpu_stop(void *data)
 
 		schedstat_inc(sd, alb_count);
 
-		if (move_one_task(&env))
+		if (move_one_task(&env, &total_run_moved))
 			schedstat_inc(sd, alb_pushed);
 		else
 			schedstat_inc(sd, alb_failed);
