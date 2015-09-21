@@ -72,7 +72,7 @@ static bool hotplug_boost = 1;
 module_param(hotplug_boost, bool, 0644);
 
 #ifdef CONFIG_LCD_NOTIFY
-bool wakeup_boost;
+static bool wakeup_boost;
 module_param(wakeup_boost, bool, 0644);
 #endif
 
