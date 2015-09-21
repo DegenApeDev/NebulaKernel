@@ -42,6 +42,16 @@
 /* in drivers/staging/android */
 #include "ram_console.h"
 
+#if defined(CONFIG_LCD_KCAL)
+/* LGE_CHANGE_S
+   * change code for LCD KCAL
+   * 2013-05-08, seojin.lee@lge.com
+   */
+#include <linux/module.h>
+#include "../../../../drivers/video/msm/mdss/mdss_fb.h"
+extern int update_preset_lcdc_lut(void);
+#endif /* CONFIG_LCD_KCAL */
+
 static int cn_arr_len = 3;
 
 struct cn_prop {
