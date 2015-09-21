@@ -43,6 +43,10 @@ export LC_COLLATE LC_NUMERIC
 # descending is started. They are now explicitly listed as the
 # prepare rule.
 
+
+export cont_splash_enabled := 1
+cont_splash_enabled := 1
+
 # To put more focus on warnings, be less verbose as default
 # Use 'make V=1' to see the full commands
 
