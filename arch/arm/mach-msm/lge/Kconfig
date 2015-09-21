@@ -240,6 +240,11 @@ config LGE_KSWITCH
     help
       LGE Kill Switch
 
+config LCD_KCAL
+	depends on MACH_LGE
+	bool "Enable sysfs for LCD KCAL"
+	default n
+
 config LGE_QSDL_SUPPORT
     tristate "Support for Quality Statistics Data Logging"
     default n
@@ -254,5 +259,36 @@ config LGE_QFPROM_INTERFACE
 	depends on MACH_LGE
 	help
 	  LGE QFPROM DRIVER.
+
+
+config LGE_DIAG_BYPASS
+	tristate "Support LGE diag bypass for factory"
+	default n
+	depends on MACH_LGE
+	help
+	  LGE diag bypass
+
+
+config LGE_LCD_OFF_DIMMING
+	tristate "Support LGE LCD off dimming reboot"
+	default n
+	depends on MACH_LGE
+	help
+	  Support lcd off or dimming reboot when reboot reason is "LCD off". lcd stay dimming until lcd is off and on again.
+
+config LGE_LIMIT_FREQ_TABLE
+    bool "Set limitation to cpu frquency for manufacturing"
+    default n
+    depends on MACH_LGE
+    help
+      set limitation to cpu frquency for manufacturing
+
+config LGE_GDSC_SWCONTROL
+	bool "Support to use controlling gdsc by sw for msm8974AA"
+	default n
+	depends on MACH_LGE
+	help
+	  When enable this, LGE's sw control code for gdsc enable and diasble
+	  are used. Normally, msm8974AA chipset based LGE model may use it.
 
 endmenu

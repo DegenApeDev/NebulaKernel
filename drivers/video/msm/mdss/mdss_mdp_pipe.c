@@ -34,11 +34,6 @@
 /* following offsets are relative to status register bit offset */
 #define CLK_STATUS_OFFSET	0x0
 
-#if defined (CONFIG_MACH_LGE_G3_KDDI_LGD_FHD)
-#define PANEL_X_RES 1080
-#define PANEL_Y_RES 1920
-#endif
-
 static DEFINE_MUTEX(mdss_mdp_sspp_lock);
 static DEFINE_MUTEX(mdss_mdp_smp_lock);
 
@@ -221,8 +216,8 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 	struct mdss_mdp_plane_sizes ps;
 	int i;
 	int rc = 0, rot_mode = 0, wb_mixer = 0;
-	u32 nlines, format, seg_w;
 	bool force_alloc = 0;
+	u32 nlines, format, seg_w;
 	u16 width;
 
 	width = pipe->src.w >> pipe->horz_deci;
@@ -276,13 +271,13 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 			}
 		}
 		rc = mdss_mdp_get_plane_sizes(format, width, pipe->src.h,
-			&ps, 0);
+			&ps, 0, 0);
 		if (rc)
 			return rc;
 
 		if (pipe->mixer && pipe->mixer->rotator_mode) {
 			rot_mode = 1;
-		} else if (ps.num_planes == 1) {
+		} else if (pipe->mixer && (ps.num_planes == 1)) {
 			ps.ystride[0] = MAX_BPP *
 				max(pipe->mixer->width, width);
 		} else if (mdata->has_decimation) {
@@ -569,7 +564,6 @@ static struct mdss_mdp_pipe *mdss_mdp_pipe_init(struct mdss_mdp_mixer *mixer,
 		 * shared as long as its attached to a writeback mixer
 		 */
 		pipe = mdata->dma_pipes + mixer->num;
-		mdss_mdp_pipe_map(pipe);
 		kref_get(&pipe->kref);
 		pr_debug("pipe sharing for pipe=%d\n", pipe->num);
 	} else {
@@ -892,6 +886,7 @@ static int mdss_mdp_image_setup(struct mdss_mdp_pipe *pipe,
 	u32 decimation;
 	struct mdss_mdp_img_rect sci, dst, src;
 	int ret = 0;
+	bool rotation = false;
 
 	pr_debug("pnum=%d wh=%dx%d src={%d,%d,%d,%d} dst={%d,%d,%d,%d}\n",
 			pipe->num, pipe->img_width, pipe->img_height,
@@ -900,8 +895,12 @@ static int mdss_mdp_image_setup(struct mdss_mdp_pipe *pipe,
 
 	width = pipe->img_width;
 	height = pipe->img_height;
+
+	if (pipe->flags & MDP_SOURCE_ROTATED_90)
+		rotation = true;
+
 	mdss_mdp_get_plane_sizes(pipe->src_fmt->format, width, height,
-			&pipe->src_planes, pipe->bwc_mode);
+			&pipe->src_planes, pipe->bwc_mode, rotation);
 
 	if (data != NULL) {
 		ret = mdss_mdp_data_check(data, &pipe->src_planes);
@@ -928,17 +927,22 @@ static int mdss_mdp_image_setup(struct mdss_mdp_pipe *pipe,
 	dst = pipe->dst;
 	src = pipe->src;
 
-	if (pipe->mixer->type == MDSS_MDP_MIXER_TYPE_INTF)
+	if (pipe->mixer->type == MDSS_MDP_MIXER_TYPE_INTF) {
 		mdss_mdp_crop_rect(&src, &dst, &sci);
+		if (pipe->flags & MDP_FLIP_LR) {
+			src.x = pipe->src.x + (pipe->src.x + pipe->src.w)
+				- (src.x + src.w);
+		}
+		if (pipe->flags & MDP_FLIP_UD) {
+			src.y = pipe->src.y + (pipe->src.y + pipe->src.h)
+				- (src.y + src.h);
+		}
+	}
 
 	src_size = (src.h << 16) | src.w;
 	src_xy = (src.y << 16) | src.x;
 	dst_size = (dst.h << 16) | dst.w;
-#if defined (CONFIG_MACH_LGE_G3_KDDI_LGD_FHD)
-	dst_xy = ((PANEL_Y_RES - dst.y - dst.h) << 16) | dst.x;
-#else
 	dst_xy = (dst.y << 16) | dst.x;
-#endif
 
 	ystride0 =  (pipe->src_planes.ystride[0]) |
 			(pipe->src_planes.ystride[1] << 16);
@@ -1037,12 +1041,6 @@ static int mdss_mdp_format_setup(struct mdss_mdp_pipe *pipe)
 			(fmt->unpack_align_msb << 18) |
 			((fmt->bpp - 1) << 9);
 
-#if defined(CONFIG_MACH_LGE_G3_KDDI_LGD_FHD)
-	if (pipe->flags & MDP_FLIP_UD)
-		opmode &= ~MDSS_MDP_OP_FLIP_UD;
-	else
-		opmode |= MDSS_MDP_OP_FLIP_UD;
-#endif
 	mdss_mdp_pipe_sspp_setup(pipe, &opmode);
 
 	if (pipe->scale.enable_pxl_ext)
@@ -1050,8 +1048,8 @@ static int mdss_mdp_format_setup(struct mdss_mdp_pipe *pipe)
 
 	if (fmt->tile && mdata->highest_bank_bit) {
 		mdss_mdp_pipe_write(pipe, MDSS_MDP_REG_SSPP_FETCH_CONFIG,
-				MDSS_MDP_FETCH_CONFIG_RESET_VALUE |
-				mdata->highest_bank_bit << 18);
+			MDSS_MDP_FETCH_CONFIG_RESET_VALUE |
+				 mdata->highest_bank_bit << 18);
 	}
 	mdss_mdp_pipe_write(pipe, MDSS_MDP_REG_SSPP_SRC_FORMAT, src_format);
 	mdss_mdp_pipe_write(pipe, MDSS_MDP_REG_SSPP_SRC_UNPACK_PATTERN, unpack);

@@ -35,30 +35,22 @@ config FB_MSM_MDSS_MDP3
 	---help---
 	The MDP3 provides support for an older version display controller
 	included in latest display sub-system, known as MDSS.
-
-config MACH_LGE_G3_KDDI_LGD_FHD
-	bool "LGE G3 KDDI LGD FHD"
-	default n
-
 config LGE_VSYNC_SKIP
 	bool "MDSS VSYNC Skip scheme"
 	---help---
 	This feature provides VSYNC skip scheme.
 
-config LGE_SHARPENING
+config LGE_SUPPORT_LCD_MAKER_ID
 	depends on MACH_LGE
-	bool "LGE display sharpening control"
-	---help---
-	  Allow control of the display sharpening via sysfs node.
-
-config FB_MSM_MDSS_KCAL_CTRL
-	depends on FB_MSM_MDSS
-	bool "MDSS color control"
-	---help---
-	  Enable sysfs for post-processing control of mdss-mdp5 display
-	  controllers in MDSS.
-
-config LCD_NOTIFY
-	depends on FB_MSM_MDSS
-	bool "Enable LCD Notifier Helper"
 	default y
+	bool "LGE LCD MAKER ID support configuration"
+	help
+	   Say Y here to enable support for LCD MAKER ID lge feature.
+	   
+config LGE_MIPI_DZNY_JDI_INCELL_FHD_VIDEO_PANEL
+	bool "MIPI Disney JDI FHD LCD Video Panel"
+	default n
+
+config LGE_LION_DSV
+	bool "LION_DSV Power Management chip"
+	default n

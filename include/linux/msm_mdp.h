@@ -81,13 +81,12 @@
 #define MSMFB_ASYNC_BLIT              _IOW(MSMFB_IOCTL_MAGIC, 168, unsigned int)
 #define MSMFB_OVERLAY_PREPARE		_IOWR(MSMFB_IOCTL_MAGIC, 169, \
 						struct mdp_overlay_list)
+#define MSMFB_LPM_ENABLE        _IOWR(MSMFB_IOCTL_MAGIC, 170, unsigned int)
+#define MSMFB_INVERT_PANEL			_IOW(MSMFB_IOCTL_MAGIC, 171, unsigned int)
 
-#ifdef CONFIG_MACH_LGE
-#define MSMFB_INVERT_PANEL			_IOW(MSMFB_IOCTL_MAGIC, 170, unsigned int)
-#endif
-#if defined(CONFIG_LGE_BROADCAST_TDMB)
-#define MSMFB_DMB_SET_FLAG        _IOW(MSMFB_IOCTL_MAGIC, 171, int)
-#define MSMFB_DMB_SET_CSC_MATRIX  _IOW(MSMFB_IOCTL_MAGIC, 172, struct mdp_csc_cfg)
+#if defined(CONFIG_LGE_BROADCAST_TDMB) || defined(CONFIG_LGE_BROADCAST_JFULLSEG)
+#define MSMFB_DMB_SET_FLAG        _IOW(MSMFB_IOCTL_MAGIC, 172, int)
+#define MSMFB_DMB_SET_CSC_MATRIX  _IOW(MSMFB_IOCTL_MAGIC, 173, struct mdp_csc_cfg)
 #endif /* LGE_BROADCAST */
 
 #define FB_TYPE_3D_PANEL 0x10101010
@@ -128,6 +127,7 @@ enum {
 	NOTIFY_TYPE_NO_UPDATE,
 	NOTIFY_TYPE_SUSPEND,
 	NOTIFY_TYPE_UPDATE,
+	NOTIFY_TYPE_BL_UPDATE,
 };
 
 enum {
@@ -865,6 +865,7 @@ enum {
 
 #define MDSS_MAX_BL_BRIGHTNESS 255
 #define AD_BL_LIN_LEN 256
+#define AD_BL_ATT_LUT_LEN 33
 
 #define MDSS_AD_MODE_AUTO_BL	0x0
 #define MDSS_AD_MODE_AUTO_STR	0x1
@@ -893,9 +894,13 @@ struct mdss_ad_init {
 	uint16_t frame_h;
 	uint8_t logo_v;
 	uint8_t logo_h;
+	uint32_t alpha;
+	uint32_t alpha_base;
 	uint32_t bl_lin_len;
+	uint32_t bl_att_len;
 	uint32_t *bl_lin;
 	uint32_t *bl_lin_inv;
+	uint32_t *bl_att_lut;
 };
 
 #define MDSS_AD_BL_CTRL_MODE_EN 1
